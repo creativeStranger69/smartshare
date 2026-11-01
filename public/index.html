@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="theme-color" content="#5b3fc4" />
+  <meta name="description" content="SmartShare - group chat that never stores the same file twice." />
+  <title>SmartShare</title>
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <link rel="icon" type="image/png" sizes="192x192" href="/icon-192.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="SmartShare" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- ============ SCREEN 1: LOGIN / REGISTER (shown by app.js only when not logged in) ============ -->
+  <section id="auth-screen" class="auth hidden">
+    <div class="auth-card">
+      <!-- left: artwork + rotating tagline (pure CSS/SVG, no image files) -->
+      <aside class="auth-art" aria-hidden="false">
+        <svg class="art-dunes" viewBox="0 0 400 520" preserveAspectRatio="xMidYMax slice" aria-hidden="true">
+          <defs>
+            <linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#2b1b5e"/><stop offset=".55" stop-color="#6a3fa8"/><stop offset="1" stop-color="#c76fa8"/></linearGradient>
+            <linearGradient id="d1" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#7c4fb5"/><stop offset="1" stop-color="#3a2470"/></linearGradient>
+            <linearGradient id="d2" x1="1" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#4b2f87"/><stop offset="1" stop-color="#1d1245"/></linearGradient>
+            <radialGradient id="sun" cx=".5" cy=".5" r=".5"><stop offset="0" stop-color="#ffd6f0" stop-opacity=".9"/><stop offset="1" stop-color="#ffd6f0" stop-opacity="0"/></radialGradient>
+          </defs>
+          <rect width="400" height="520" fill="url(#sky)"/>
+          <circle cx="290" cy="190" r="120" fill="url(#sun)"/>
+          <path d="M0 330 C70 300 120 250 190 250 C260 250 320 320 400 300 L400 520 L0 520Z" fill="url(#d1)"/>
+          <path d="M0 400 C90 360 170 380 250 350 C320 325 360 350 400 340 L400 520 L0 520Z" fill="url(#d2)"/>
+          <path d="M0 470 C100 430 200 460 400 420 L400 520 L0 520Z" fill="#150c34" opacity=".85"/>
+        </svg>
+        <div class="art-top"><span class="logo-mark" aria-hidden="true">S</span><span class="logo-word">SmartShare</span></div>
+        <div class="art-bottom">
+          <div class="slides" id="auth-slides" aria-live="off">
+            <div class="slide active"><h2>Share once.<br>Chat everywhere.</h2><p>The same file is never stored twice in a group.</p></div>
+            <div class="slide"><h2>Links you can<br>trust.</h2><p>Every link gets a risk score before you open it.</p></div>
+            <div class="slide"><h2>Your language,<br>every message.</h2><p>Write in Urdu, read in Hindi, English or 20 more.</p></div>
+          </div>
+          <div class="dots" id="auth-dots" role="tablist" aria-label="Highlights">
+            <button type="button" class="dot active" aria-label="Highlight 1"></button>
+            <button type="button" class="dot" aria-label="Highlight 2"></button>
+            <button type="button" class="dot" aria-label="Highlight 3"></button>
+          </div>
+        </div>
+      </aside>
+
+      <!-- right: the form -->
+      <form id="auth-form" class="auth-form" novalidate>
+        <h1 id="auth-title">Welcome back</h1>
+        <p class="auth-switch"><span id="auth-sub">New here?</span> <a href="#" id="auth-toggle">Create an account</a></p>
+
+        <div class="field">
+          <label for="auth-username">Username</label>
+          <input id="auth-username" placeholder="e.g. rahul_01" required minlength="3" maxlength="20" autocomplete="username" autocapitalize="none" spellcheck="false" />
+        </div>
+        <div class="field hidden" id="auth-email-row">
+          <label for="auth-email">Email</label>
+          <input id="auth-email" type="email" placeholder="you@example.com" maxlength="254" autocomplete="email" />
+        </div>
+        <div class="field">
+          <label for="auth-password">Password</label>
+          <div class="pw-wrap">
+            <input id="auth-password" type="password" placeholder="Enter your password" required maxlength="72" autocomplete="current-password" />
+            <button type="button" id="pw-toggle" class="pw-toggle" aria-label="Show password" aria-pressed="false" title="Show / hide password">👁</button>
+          </div>
+          <div id="pw-meter" class="pw-meter hidden" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+          <small id="pw-hint" class="hint hidden"></small>
+        </div>
+        <div class="field hidden" id="auth-language-row">
+          <label for="auth-language">Language I read messages in</label>
+          <select id="auth-language"></select>
+        </div>
+
+        <button type="submit" id="auth-submit" class="primary">Log in</button>
+        <p id="auth-error" class="error" role="alert"></p>
+        <p class="auth-foot">Your files stay private to your groups.</p>
+      </form>
+    </div>
+  </section>
+
+  <!-- ============ SCREEN 2: MAIN APP (split screen) ============ -->
+  <main id="app-screen" class="app hidden">
+    <div id="conn-banner" class="conn-banner hidden" role="status">Connection lost - reconnecting…</div>
+
+    <!-- LEFT PANEL: groups list -->
+    <aside class="sidebar" aria-label="Your chats">
+      <header class="bar">
+        <span class="me"><span id="me-avatar" class="avatar" aria-hidden="true"></span><strong id="me-name"></strong></span>
+        <span>
+          <button id="new-chat-btn" title="New chat (one-to-one)" aria-label="New one-to-one chat">💬</button>
+          <button id="new-group-btn" title="New group" aria-label="New group">👥</button>
+          <button id="logout-btn" title="Log out" aria-label="Log out">⏻</button>
+        </span>
+      </header>
+      <!-- AUTO-TRANSLATE settings: the language I want to READ messages in -->
+      <div id="translate-settings" class="settings hidden">
+        <label for="lang-select">🌐 I read in</label>
+        <select id="lang-select"></select>
+        <label class="check"><input type="checkbox" id="auto-translate" /> Auto-translate messages</label>
+      </div>
+      <div class="chat-search"><label class="sr-only" for="chat-filter">Search chats</label><input id="chat-filter" type="search" placeholder="Search chats" autocomplete="off" /></div>
+      <ul id="group-list" class="group-list"></ul>
+    </aside>
+
+    <!-- RIGHT PANEL: active chat -->
+    <section class="chat">
+      <div id="empty-state" class="empty"><div class="empty-art" aria-hidden="true">💬</div><strong>SmartShare</strong><span>Pick a chat, or start a new one-to-one chat with the 💬 button.</span></div>
+
+      <div id="chat-view" class="chat-view hidden">
+        <header class="bar">
+          <span class="chat-head"><button id="back-btn" class="back-btn" aria-label="Back to chats" title="Back">←</button><span id="chat-avatar" class="avatar" aria-hidden="true"></span><span><strong id="chat-title"></strong><br><small id="chat-sub"></small></span></span>
+          <span>
+            <button id="add-member-btn" title="Add member" aria-label="Add member">👤＋</button>
+            <button id="gallery-btn" title="Group media gallery" aria-label="Toggle group media gallery" aria-expanded="false">🖼 Media</button>
+          </span>
+        </header>
+
+        <div class="chat-body">
+          <div id="messages" class="messages" role="log" aria-live="polite" aria-label="Messages"></div>
+
+          <!-- Media gallery drawer: every UNIQUE file in the group + storage savings -->
+          <aside id="gallery" class="gallery hidden" aria-label="Group media">
+            <h3>Group Media <small>(unique files only)</small></h3>
+            <div id="stats" class="stats"></div>
+            <div id="gallery-grid" class="gallery-grid"></div>
+          </aside>
+        </div>
+
+        <div id="typing" class="typing" aria-live="polite"></div>
+
+        <form id="send-form" class="input-bar">
+          <label class="attach" id="attach-label" title="Attach file" aria-label="Attach file">📎
+            <input id="file-input" type="file" hidden />
+          </label>
+          <label class="sr-only" for="text-input">Message</label>
+          <input id="text-input" placeholder="Type a message" autocomplete="off" maxlength="4000" />
+          <button type="submit">Send</button>
+        </form>
+      </div>
+    </section>
+  </main>
+
+  <!-- One-to-one chat: choose anybody registered on SmartShare -->
+  <dialog id="chat-dialog" class="picker-dialog" aria-labelledby="chat-dialog-title">
+    <h3 id="chat-dialog-title">New chat</h3>
+    <div id="chat-picker"></div>
+    <menu><button type="button" class="secondary" data-close="chat-dialog">Close</button></menu>
+  </dialog>
+
+  <dialog id="group-dialog" class="picker-dialog" aria-labelledby="group-dialog-title">
+    <form method="dialog" id="group-form">
+      <h3 id="group-dialog-title">New group</h3>
+      <label class="sr-only" for="group-name">Group name</label>
+      <input id="group-name" placeholder="Group name" required maxlength="50" />
+      <div id="group-picker"></div>
+      <menu><button value="cancel" class="secondary" formnovalidate>Cancel</button><button value="ok">Create group</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="member-dialog" class="picker-dialog" aria-labelledby="member-dialog-title">
+    <form method="dialog" id="member-form">
+      <h3 id="member-dialog-title">Add members</h3>
+      <div id="member-picker"></div>
+      <menu><button value="cancel" class="secondary" formnovalidate>Cancel</button><button value="ok">Add</button></menu>
+    </form>
+  </dialog>
+
+  <dialog id="delete-dialog" aria-labelledby="delete-title">
+    <h3 id="delete-title">Delete for everyone?</h3>
+    <p id="delete-text" class="link-note"></p>
+    <menu>
+      <button type="button" class="secondary" id="delete-cancel">Cancel</button>
+      <button type="button" class="danger" id="delete-confirm">Delete</button>
+    </menu>
+  </dialog>
+
+  <!-- FRAUD-LINK CHECK: shown every time someone clicks a link in a message -->
+  <dialog id="link-dialog" class="link-dialog" aria-labelledby="link-title">
+    <div id="link-verdict" class="link-verdict">
+      <span id="link-icon" class="link-icon" aria-hidden="true"></span>
+      <div><h3 id="link-title"></h3><div id="link-percent" class="link-percent"></div></div>
+    </div>
+    <div class="risk-bar" aria-hidden="true"><div id="risk-fill" class="risk-fill"></div></div>
+    <p class="link-label">This link goes to:</p>
+    <p id="link-host" class="link-host"></p>
+    <code id="link-url" class="link-url"></code>
+    <ul id="link-reasons" class="link-reasons"></ul>
+    <p id="link-note" class="link-note"></p>
+    <label id="link-ack-row" class="check hidden"><input type="checkbox" id="link-ack" /> I understand this link may be a scam</label>
+    <menu>
+      <button type="button" id="link-cancel" class="secondary">Don't open</button>
+      <button type="button" id="link-open">Open link</button>
+    </menu>
+  </dialog>
+
+  <div id="toast" class="toast hidden" role="status"></div>
+
+  <!-- Socket.io client is served automatically by the socket.io server -->
+  <script src="/socket.io/socket.io.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
