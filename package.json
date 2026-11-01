@@ -1,0 +1,30 @@
+{
+  "name": "smartshare",
+  "version": "3.0.0",
+  "description": "Duplicate-free media group chat (SHA-256 deduplication) - B.Tech mini project",
+  "main": "server.js",
+  "engines": {
+    "node": ">=18"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node --watch server.js",
+    "test": "node --test",
+    "smoke": "node scripts/smoke.js"
+  },
+  "dependencies": {
+    "bcryptjs": "^2.4.3",
+    "compression": "^1.7.4",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "express-rate-limit": "^7.4.0",
+    "helmet": "^7.1.0",
+    "jsonwebtoken": "^9.0.2",
+    "mongoose": "^8.5.0",
+    "multer": "^2.0.0",
+    "socket.io": "^4.7.5"
+  },
+  "optionalDependencies": {
+    "sharp": "^0.34.2"
+  }
+}

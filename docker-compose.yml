@@ -1,0 +1,38 @@
+# One command production-style stack:   docker compose up -d --build
+# Needs a ".env" file next to this one with at least:  JWT_SECRET=<32+ random characters>
+# Put an HTTPS reverse proxy (Caddy/nginx) in front - see README "Deploy".
+services:
+  app:
+    build: .
+    restart: unless-stopped
+    ports:
+      - "3000:3000"            # with a reverse proxy, change to "127.0.0.1:3000:3000"
+    environment:
+      NODE_ENV: production
+      MONGO_URI: mongodb://mongo:27017/smartshare
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET (32+ characters) in .env}
+      MAX_FILE_MB: ${MAX_FILE_MB:-25}
+      # Cookies are Secure in production, so over plain http (local test) browsers drop them.
+      # Local test:  COOKIE_SECURE=false docker compose up   |   Real deploy: leave unset + use HTTPS
+      COOKIE_SECURE: ${COOKIE_SECURE:-true}
+    volumes:
+      - uploads:/app/uploads
+    depends_on:
+      mongo:
+        condition: service_healthy
+
+  mongo:
+    image: mongo:7
+    restart: unless-stopped
+    volumes:
+      - mongo-data:/data/db
+    # not published to the host: only the app container can reach the database
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+
+volumes:
+  uploads:
+  mongo-data:

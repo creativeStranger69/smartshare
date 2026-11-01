@@ -1,0 +1,17 @@
+# One-click deploy on Render (render.com): New + > Blueprint > pick your GitHub repo.
+# You only have to paste MONGO_URI (MongoDB Atlas connection string) when Render asks.
+services:
+  - type: web
+    name: smartshare
+    runtime: node
+    plan: free
+    buildCommand: npm install
+    startCommand: npm start
+    healthCheckPath: /healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        generateValue: true      # Render creates a long random secret for you
+      - key: MONGO_URI
+        sync: false              # you paste it in the Render dashboard (never commit it)
